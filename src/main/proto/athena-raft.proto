@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.rcplatform.athena.raft.loader.grpc";
+option java_outer_classname = "GrpcRaftLoader";
+
+service GrpcRaftLoaderService {
+  rpc RequestMembers (Member) returns(Members){}                                    // follow启动时，主动请求同步member信息，然后向master注册。
+  rpc SyncMembers (Members) returns(Member){}                                       // Master用于主动发布心跳时的数据信息，返回值为被通知节点认为正确的master节点。 可以不带 string tasks = 7 信息，以便节省空间。
+  rpc RequestVote (Member) returns (Member) {}                                       // 选举操作，被选择节点返回他认为正确的master节点，如果关键信息为空则认为放弃
+  rpc DynamicAssignTasks (DynamicTasks) returns (Member) {}                                // 分配任务, 返回DynamicTasks.target即可。
+}
+
+message Member {
+  string name = 1;
+  string host = 2;
+  int32 port = 3;
+  int32 status = 4;                                  // 1-follow, 2-candidate, 3-master
+  int32 term = 5;
+  repeated Task tasks = 6;                                    // abstract tasks
+}
+
+message Task {
+  int32 id = 1;
+  string body = 2;
+}
+
+message Members {
+  repeated Member members = 1;
+}
+
+message DynamicTasks {
+  Member source = 1;                           //source - master
+  Member target = 2;                           //target - follow
+}
